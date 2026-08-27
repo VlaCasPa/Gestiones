@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCM2L | Dashboard Ejecutivo Minimalista</title>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+
+        :root {
+            --bg-color: #0f172a;
+            --surface-color: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-color: #38bdf8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            padding-bottom: 80px;
+        }
+
+        /* Header */
+        header {
+            padding: 24px 20px;
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: -webkit-linear-gradient(0deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            margin-top: 2px;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            background-color: var(--success);
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* Main Grid */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .kpi-wrapper {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-box {
+            background: var(--surface-color);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: transform 0.2s ease;
+        }
+
+        .kpi-box:hover {
+            transform: translateY(-2px);
+        }
+
+        .kpi-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .kpi-number {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin: 8px 0 4px 0;
+            color: var(--text-primary);
+        }
+
+        /* Filter */
+        .filters {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .filters::-webkit-scrollbar { display: none; }
+
+        .chip {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+
+        .chip.active {
+            background: var(--text-primary);
+            color: var(--bg-color);
+            border-color: var(--text-primary);
+        }
+
+        /* Cards */
+        .task-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-glow {
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+        }
+
+        .status-mitigado .card-glow { background: var(--success); }
+        .status-proceso .card-glow { background: var(--warning); }
+        .status-critico .card-glow { background: var(--danger); }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            line-height: 1.4;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .card-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .badge {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-loc { background: rgba(56, 189, 248, 0.15); color: var(--accent-color); }
+        .badge-ent { background: rgba(148, 163, 184, 0.15); color: var(--text-secondary); }
+
+        .card-body {
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .card-body strong {
+            color: var(--text-primary);
+        }
+        
+        /* Notebook Integration Button */
+        .notebook-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(129, 140, 248, 0.15);
+            color: #818cf8;
+            border: 1px solid rgba(129, 140, 248, 0.3);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-decoration: none;
+            margin-top: 16px;
+            transition: all 0.2s;
+        }
+        .notebook-btn:hover {
+            background: rgba(129, 140, 248, 0.25);
+        }
+
+        /* FAB Action */
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--text-primary);
+            color: var(--bg-color);
+            border: none;
+            padding: 16px 24px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s;
+        }
+        
+        .fab:hover { transform: scale(1.05); }
+
+        /* Loader */
+        .loader {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+        }
+        .toast.show { bottom: 90px; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <div class="brand-title">L2 DASHBOARD</div>
+            <div class="brand-subtitle">Gestión Contractual & Permisos</div>
+        </div>
+        <div class="live-indicator"><div class="dot"></div> En vivo</div>
+    </header>
+
+    <div class="container">
+        <!-- KPIs -->
+        <div class="kpi-wrapper">
+            <div class="kpi-box">
+                <span class="kpi-label">Total Gestiones</span>
+                <span class="kpi-number" id="kpi-total">0</span>
+            </div>
+            <div class="kpi-box" style="border-color: rgba(245,158,11,0.3);">
+                <span class="kpi-label" style="color: var(--warning);">En Trámite</span>
+                <span class="kpi-number" id="kpi-proceso">0</span>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters" id="filters">
+            <button class="chip active" onclick="filterData('all', this)">Todas las áreas</button>
+        </div>
+
+        <!-- Cards -->
+        <div id="cards-container">
+            <div class="loader">Sincronizando con matriz central...</div>
+        </div>
+    </div>
+
+    <button class="fab" onclick="shareWhatsApp()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        Compartir Reporte
+    </button>
+
+    <div class="toast" id="toast">Copiado al portapapeles</div>
+
+    <script>
+        // Enlace de Google Sheets publicado como CSV
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTm39JoPL_ALWNas06bX0MRdf7Q5p6iI-_lavSBn7krkvY1JqPBILANTeGl9BjBxQ/pub?output=csv';
+        let rawData = [];
+
+        async function init() {
+            Papa.parse(CSV_URL, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    rawData = results.data;
+                    renderView(rawData);
+                }
+            });
+        }
+
+        function renderView(data) {
+            const container = document.getElementById('cards-container');
+            const filtersBox = document.getElementById('filters');
+            container.innerHTML = '';
+            
+            let countTotal = 0;
+            let countProceso = 0;
+            const ubiSet = new Set();
+
+            data.forEach((row, i) => {
+                const ubi = (row['UBICACIÓN'] || row['TAREAS ESTRUCTURA'] || row['ESTADO E25'] || 'General').trim();
+                const tema = (row['TEMA'] || row['TEMA / INTERVENCIÓN'] || '').trim();
+                const entidad = (row['ENTIDAD'] || '').trim();
+                const estado = (row['ESTADO'] || row['ESTADO OPERATIVO'] || 'En proceso').trim();
+                const acciones = (row['ACCIONES'] || row['ACCIONES EJECUTADAS'] || '').trim();
+                // Novedad: Columna para el Cuaderno Gemini Notebook
+                const notebookLink = (row['LINK NOTEBOOK'] || row['CUADERNO GEMINI'] || '').trim();
+
+                if(!tema) return;
+                
+                countTotal++;
+                ubiSet.add(ubi);
+
+                const estLower = estado.toLowerCase();
+                let statusClass = 'status-critico';
+                let estColor = 'var(--danger)';
+                
+                if (estLower.includes('concluid') || estLower.includes('mitigad')) {
+                    statusClass = 'status-mitigado';
+                    estColor = 'var(--success)';
+                } else if (estLower.includes('proceso') || estLower.includes('inspecc')) {
+                    statusClass = 'status-proceso';
+                    estColor = 'var(--warning)';
+                    countProceso++;
+                }
+
+                // Plantilla Minimalista
+                const html = `
+                    <div class="task-card ${statusClass}" data-ubi="${ubi}">
+                        <div class="card-glow"></div>
+                        <div class="card-header">
+                            <h3 class="card-title">${tema}</h3>
+                        </div>
+                        <div class="card-badges">
+                            <span class="badge badge-loc">${ubi}</span>
+                            <span class="badge badge-ent">${entidad}</span>
+                            <span class="badge" style="color: ${estColor}; border: 1px solid ${estColor};">${estado}</span>
+                        </div>
+                        <div class="card-body">
+                            ${acciones.substring(0, 150)}...
+                        </div>
+                        
+                        ${notebookLink ? `
+                        <a href="${notebookLink}" target="_blank" class="notebook-btn">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                            Abrir Cuaderno Gemini
+                        </a>
+                        ` : ''}
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+
+            document.getElementById('kpi-total').innerText = countTotal;
+            document.getElementById('kpi-proceso').innerText = countProceso;
+
+            // Render Filtros
+            filtersBox.innerHTML = '<button class="chip active" onclick="filterData('all', this)">Todas las áreas</button>';
+            ubiSet.forEach(loc => {
+                filtersBox.innerHTML += `<button class="chip" onclick="filterData('${loc}', this)">${loc}</button>`;
+            });
+        }
+
+        function filterData(ubi, btnElem) {
+            document.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
+            btnElem.classList.add('active');
+
+            document.querySelectorAll('.task-card').forEach(card => {
+                if (ubi === 'all' || card.getAttribute('data-ubi') === ubi) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function shareWhatsApp() {
+            let text = `*LÍNEA 2 - ESTADO DE GESTIONES*
+_Área Contractual_
+
+`;
+            rawData.forEach(row => {
+                const tema = row['TEMA'] || row['TEMA / INTERVENCIÓN'];
+                const est = row['ESTADO'] || row['ESTADO OPERATIVO'];
+                if(tema) text += `▪️ *${tema}*
+Estado: ${est}
+
+`;
+            });
+            navigator.clipboard.writeText(text).then(() => {
+                const toast = document.getElementById('toast');
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 3000);
+            });
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
