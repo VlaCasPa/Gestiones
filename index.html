@@ -419,7 +419,7 @@
             document.getElementById('kpi-proceso').innerText = countProceso;
 
             // Render Filtros
-            filtersBox.innerHTML = '<button class="chip active" onclick="filterData('all', this)">Todas las áreas</button>';
+            filtersBox.innerHTML = '<button class="chip active" onclick="filterData(\'all\', this)">Todas las áreas</button>';
             ubiSet.forEach(loc => {
                 filtersBox.innerHTML += `<button class="chip" onclick="filterData('${loc}', this)">${loc}</button>`;
             });
@@ -439,17 +439,11 @@
         }
 
         function shareWhatsApp() {
-            let text = `*LÍNEA 2 - ESTADO DE GESTIONES*
-_Área Contractual_
-
-`;
+            let text = `*LÍNEA 2 - ESTADO DE GESTIONES*\n_Área Contractual_\n\n`;
             rawData.forEach(row => {
                 const tema = row['TEMA'] || row['TEMA / INTERVENCIÓN'];
                 const est = row['ESTADO'] || row['ESTADO OPERATIVO'];
-                if(tema) text += `▪️ *${tema}*
-Estado: ${est}
-
-`;
+                if(tema) text += `▪️ *${tema}*\nEstado: ${est}\n\n`;
             });
             navigator.clipboard.writeText(text).then(() => {
                 const toast = document.getElementById('toast');
